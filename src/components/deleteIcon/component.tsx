@@ -4,7 +4,7 @@ import { DeleteIconProps, DeleteIconStates } from "./interface";
 import TagUtil from "../../utils/readUtils/tagUtil";
 import DeletePopup from "../dialogs/deletePopup";
 import toast from "react-hot-toast";
-declare var window: any;
+// declare var window: any;
 class DeleteIcon extends React.Component<DeleteIconProps, DeleteIconStates> {
   constructor(props: DeleteIconProps) {
     super(props);
@@ -33,27 +33,26 @@ class DeleteIcon extends React.Component<DeleteIconProps, DeleteIconStates> {
       }
       if (item.key === this.props.itemKey) {
         deleteItems.splice(index, 1);
-        if (deleteItems.length === 0) {
-          window.localforage
-            .removeItem(this.props.mode)
-            .then(() => {
-              deleteFunc();
-              toast.success(this.props.t("Deletion successful"));
-            })
-            .catch(() => {
-              console.log("删除失败");
-            });
-        } else {
-          window.localforage
-            .setItem(this.props.mode, deleteItems)
-            .then(() => {
-              deleteFunc();
-              toast.success(this.props.t("Deletion successful"));
-            })
-            .catch(() => {
-              console.log("修改失败");
-            });
-        }
+        const endpoint = deleteItems.length === 0 ? "remove" : "set";
+        const body =
+          deleteItems.length === 0
+            ? JSON.stringify({ key: this.props.mode })
+            : JSON.stringify({ key: this.props.mode, value: deleteItems });
+
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/${endpoint}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: body,
+        })
+          .then(() => {
+            deleteFunc();
+            toast.success(this.props.t("Deletion successful"));
+          })
+          .catch(() => {
+            console.error("Operation failed");
+          });
       }
     });
   };
@@ -64,9 +63,19 @@ class DeleteIcon extends React.Component<DeleteIconProps, DeleteIconStates> {
         tag: item.tag.filter((subitem) => subitem !== tagName),
       };
     });
-    window.localforage.setItem("notes", noteList).then(() => {
-      this.props.handleFetchNotes();
-    });
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/set`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ key: "notes", value: noteList }),
+    })
+      .then(() => {
+        this.props.handleFetchNotes();
+      })
+      .catch((error) => {
+        console.error("Error saving notes:", error);
+      });
   };
   handleDeletePopup = (isOpenDelete: boolean) => {
     this.setState({ isOpenDelete });

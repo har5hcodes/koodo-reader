@@ -2,7 +2,7 @@ import NoteModel from "../../model/Note";
 import BookmarkModel from "../../model/Bookmark";
 import HtmlBookModel from "../../model/HtmlBook";
 import AddTrash from "../../utils/readUtils/addTrash";
-declare var window: any;
+// declare var window: any;
 export function handleNotes(notes: NoteModel[]) {
   return { type: "HANDLE_NOTES", payload: notes };
 }
@@ -35,26 +35,22 @@ export function handleNoteKey(key: string) {
 }
 export function handleFetchNotes() {
   return (dispatch: (arg0: { type: string; payload: NoteModel[] }) => void) => {
-    window.localforage.getItem("notes", (err, value) => {
-      let noteArr: any;
-      if (value === null || value.length === 0) {
-        noteArr = [];
-      } else {
-        noteArr = value;
-      }
-      let keyArr = AddTrash.getAllTrash();
-      dispatch(handleNotes(handleKeyRemove(noteArr, keyArr)));
-      dispatch(
-        handleDigests(
-          handleKeyRemove(
-            noteArr.filter((item: NoteModel) => {
-              return item.notes === "";
-            }),
-            keyArr
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/get?key=notes`)
+      .then((response) => response.json())
+      .then((data) => {
+        let noteArr = data.data || [];
+        let keyArr = AddTrash.getAllTrash();
+        dispatch(handleNotes(handleKeyRemove(noteArr, keyArr)));
+        dispatch(
+          handleDigests(
+            handleKeyRemove(
+              noteArr.filter((item: NoteModel) => item.notes === ""),
+              keyArr
+            )
           )
-        )
-      );
-    });
+        );
+      })
+      .catch((error) => console.error("Error fetching notes:", error));
   };
 }
 
@@ -62,16 +58,14 @@ export function handleFetchBookmarks() {
   return (
     dispatch: (arg0: { type: string; payload: BookmarkModel[] }) => void
   ) => {
-    window.localforage.getItem("bookmarks", (err, value) => {
-      let bookmarkArr: any;
-      if (value === null || value.length === 0) {
-        bookmarkArr = [];
-      } else {
-        bookmarkArr = value;
-      }
-      let keyArr = AddTrash.getAllTrash();
-      dispatch(handleBookmarks(handleKeyRemove(bookmarkArr, keyArr)));
-    });
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/get?key=bookmarks`)
+      .then((response) => response.json())
+      .then((data) => {
+        let bookmarkArr = data.data || [];
+        let keyArr = AddTrash.getAllTrash();
+        dispatch(handleBookmarks(handleKeyRemove(bookmarkArr, keyArr)));
+      })
+      .catch((error) => console.error("Error fetching bookmarks:", error));
   };
 }
 const handleKeyRemove = (items: any[], arr: string[]) => {

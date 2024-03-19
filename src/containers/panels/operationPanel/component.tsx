@@ -132,7 +132,20 @@ class OperationPanel extends React.Component<
     let bookmarkArr = this.props.bookmarks;
     bookmarkArr.push(bookmark);
     this.props.handleBookmarks(bookmarkArr);
-    window.localforage.setItem("bookmarks", bookmarkArr);
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/set`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ key: "bookmarks", value: bookmarkArr }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("Bookmarks saved successfully.");
+      })
+      .catch((error) => {
+        console.error("Error saving bookmarks:", error);
+      });
     this.setState({ isBookmark: true });
     toast.success(this.props.t("Addition successful"));
     this.props.handleShowBookmark(true);

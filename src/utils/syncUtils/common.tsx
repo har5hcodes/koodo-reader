@@ -81,7 +81,13 @@ export const moveData = (
     );
     if (driveIndex === 4) {
       let deleteBooks = books.map((item) => {
-        return window.localforage.removeItem(item.key);
+        return fetch(`${process.env.REACT_APP_BACKEND_URL}/remove`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ fileId: item.key }),
+        });
       });
       await Promise.all(deleteBooks);
     }
@@ -149,7 +155,13 @@ export const syncData = (blob: Blob, books: BookModel[] = [], isSync: true) => {
 
       if (!isSync) {
         let deleteBooks = books.map((item) => {
-          return window.localforage.removeItem(item.key);
+          return fetch(`${process.env.REACT_APP_BACKEND_URL}/remove`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ fileId: item.key }),
+          });
         });
         await Promise.all(deleteBooks);
         resolve(true);
@@ -168,7 +180,15 @@ export const zipBook = (zip: any, books: BookModel[]) => {
       books.forEach((item) => {
         data.push(
           !isElectron
-            ? window.localforage.getItem(item.key)
+            ? fetch(`${process.env.REACT_APP_BACKEND_URL}/get?key=${item.key}`)
+                .then((response) => {
+                  if (response.ok) {
+                    return response.json();
+                  } else {
+                    throw new Error("Failed to fetch book content");
+                  }
+                })
+                .then((data) => data.content)
             : BookUtil.fetchBook(item.key, false, item.path)
         );
       });
@@ -185,8 +205,8 @@ export const zipBook = (zip: any, books: BookModel[]) => {
 };
 
 export const unzipConfig = (zipEntries: any) => {
-  return new Promise<boolean>((resolve, reject) => {
-    zipEntries.forEach(function (zipEntry) {
+  return new Promise<boolean>(async (resolve, reject) => {
+    for (let zipEntry of zipEntries) {
       let text = zipEntry.getData().toString("utf8");
       if (configArr.indexOf(zipEntry.name) > -1 && text) {
         if (
@@ -194,17 +214,27 @@ export const unzipConfig = (zipEntries: any) => {
           zipEntry.name === "books.json" ||
           zipEntry.name === "bookmarks.json"
         ) {
-          window.localforage.setItem(
-            zipEntry.name.split(".")[0],
-            JSON.parse(text)
-          );
+          try {
+            await fetch(`${process.env.REACT_APP_BACKEND_URL}/set`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                key: zipEntry.name.split(".")[0],
+                value: JSON.parse(text),
+              }),
+            });
+          } catch (error) {
+            console.error(`Error storing ${zipEntry.name}:`, error);
+            reject(error);
+            return;
+          }
         } else if (zipEntry.name === "pdfjs.history.json") {
           localStorage.setItem("pdfjs.history", text);
         } else {
           localStorage.setItem(zipEntry.name.split(".")[0], text);
         }
       }
-    });
+    }
     resolve(true);
   });
 };
@@ -219,27 +249,37 @@ const toArrayBuffer = (buf) => {
 };
 export const unzipBook = (zipEntries: any) => {
   return new Promise<boolean>((resolve, reject) => {
-    window.localforage.getItem("books").then((value: any) => {
-      let count = 0;
-      value &&
-        value.length > 0 &&
-        value.forEach((item: any) => {
-          zipEntries.forEach(async (zipEntry) => {
-            if (zipEntry.name === item.key) {
-              await BookUtil.addBook(
-                item.key,
-                toArrayBuffer(zipEntry.getData())
-              );
-              count++;
-              if (count === value.length) {
-                resolve(true);
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/get?key=books`)
+      .then((response) => response.json())
+      .then((data) => {
+        const value = data.data;
+        let count = 0;
+        if (value && value.length > 0) {
+          value.forEach((item: any) => {
+            zipEntries.forEach(async (zipEntry) => {
+              if (zipEntry.name === item.key) {
+                await BookUtil.addBook(
+                  item.key,
+                  toArrayBuffer(zipEntry.getData())
+                );
+                count++;
+                if (count === value.length) {
+                  resolve(true);
+                }
               }
-            }
+            });
           });
-        });
-    });
+        } else {
+          resolve(false);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching books:", error);
+        reject(error);
+      });
   });
 };
+
 export const zipConfig = (
   zip: any,
   books: BookModel[],

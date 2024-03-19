@@ -113,17 +113,28 @@ class PopupOption extends React.Component<PopupOptionProps> {
     );
     let noteArr = this.props.notes;
     noteArr.push(digest);
-    window.localforage.setItem("notes", noteArr).then(() => {
-      this.props.handleOpenMenu(false);
-      toast.success(this.props.t("Addition successful"));
-      this.props.handleFetchNotes();
-      this.props.handleMenuMode("");
-      createOneNote(
-        digest,
-        this.props.currentBook.format,
-        this.handleNoteClick
-      );
-    });
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/set`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ key: "notes", value: noteArr }),
+    })
+      .then(() => {
+        this.props.handleOpenMenu(false);
+        toast.success(this.props.t("Addition successful"));
+        this.props.handleFetchNotes();
+        this.props.handleMenuMode("");
+        createOneNote(
+          digest,
+          this.props.currentBook.format,
+          this.handleNoteClick
+        );
+      })
+      .catch((error) => {
+        console.error("Error saving notes:", error);
+        toast.error(this.props.t("Addition failed"));
+      });
   };
 
   handleNoteClick = (event: Event) => {

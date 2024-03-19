@@ -4,7 +4,7 @@ import "./editDialog.css";
 import { Trans } from "react-i18next";
 import { EditDialogProps, EditDialogState } from "./interface";
 import toast from "react-hot-toast";
-declare var window: any;
+// declare var window: any;
 class EditDialog extends React.Component<EditDialogProps, EditDialogState> {
   constructor(props: EditDialogProps) {
     super(props);
@@ -41,10 +41,19 @@ class EditDialog extends React.Component<EditDialogProps, EditDialogState> {
         return false;
       }
     });
-    window.localforage.setItem("books", books).then(() => {
-      this.props.handleEditDialog(false);
-      this.props.handleFetchBooks();
-    });
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/set`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ key: "books", value: books }),
+    })
+      .then(() => {
+        this.props.handleEditDialog(false);
+        this.props.handleFetchBooks();
+      })
+      .catch((error) => console.error("Error setting books:", error));
+
     toast.success(this.props.t("Edition successful"));
     this.props.handleActionDialog(false);
   };

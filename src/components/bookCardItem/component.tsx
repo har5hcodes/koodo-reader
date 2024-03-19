@@ -119,16 +119,30 @@ class BookCardItem extends React.Component<BookCardProps, BookCardState> {
         const response = await axios.get(
           `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
           {
-            responseType: "arraybuffer",
-            headers: { Authorization: `Bearer ${accessToken}` },
+            responseType: "blob",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
           }
         );
-        await window.localforage.setItem(fileId, response.data);
-        BookUtil.RedirectBook(
-          this.props.book,
-          this.props.t,
-          this.props.history
-        );
+
+        // Convert the Blob to a base64 string
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64data = reader.result;
+
+          await axios.post(`${process.env.REACT_APP_BACKEND_URL}/set`, {
+            key: this.props.book.key,
+            value: base64data,
+          });
+
+          BookUtil.RedirectBook(
+            this.props.book,
+            this.props.t,
+            this.props.history
+          );
+        };
+        reader.readAsDataURL(response.data);
       } catch (error) {
         console.error("Error fetching book content from Google Drive:", error);
       }

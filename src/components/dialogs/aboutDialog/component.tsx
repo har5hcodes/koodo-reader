@@ -232,8 +232,12 @@ class AboutDialog extends React.Component<AboutDialogProps, AboutDialogState> {
           <li
             className="sort-by-category-list"
             onClick={async () => {
-              let dictHistory =
-                (await window.localforage.getItem("words")) || [];
+              const response = await fetch(
+                `${process.env.REACT_APP_BACKEND_URL}/get?key=words`
+              );
+              const data = await response.json();
+              let dictHistory = data.data || [];
+
               if (dictHistory.length > 0) {
                 exportDictionaryHistory(dictHistory, [
                   ...this.props.books,

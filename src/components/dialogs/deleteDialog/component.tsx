@@ -13,7 +13,7 @@ import AddTrash from "../../../utils/readUtils/addTrash";
 import BookUtil from "../../../utils/fileUtils/bookUtil";
 import toast from "react-hot-toast";
 import StorageUtil from "../../../utils/serviceUtils/storageUtil";
-declare var window: any;
+// declare var window: any;
 class DeleteDialog extends React.Component<
   DeleteDialogProps,
   DeleteDialogState
@@ -35,21 +35,47 @@ class DeleteDialog extends React.Component<
       if (this.props.bookmarks) {
         let bookmarkArr = DeleteUtil.deleteBookmarks(this.props.bookmarks, key);
         if (bookmarkArr.length === 0) {
-          await window.localforage.removeItem("bookmarks");
+          await fetch(`${process.env.REACT_APP_BACKEND_URL}/remove`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ key: "bookmarks" }),
+          });
         } else {
-          await window.localforage.setItem("bookmarks", bookmarkArr);
+          await fetch(`${process.env.REACT_APP_BACKEND_URL}/set`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ key: "bookmarks", value: bookmarkArr }),
+          });
         }
+
         this.props.handleFetchBookmarks();
       }
       if (this.props.notes) {
         let noteArr = DeleteUtil.deleteNotes(this.props.notes, key);
         if (noteArr.length === 0) {
-          await window.localforage.removeItem("notes");
+          await fetch(`${process.env.REACT_APP_BACKEND_URL}/remove`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ key: "notes" }),
+          });
           resolve();
         } else {
-          await window.localforage.setItem("notes", noteArr);
+          await fetch(`${process.env.REACT_APP_BACKEND_URL}/set`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ key: "notes", value: noteArr }),
+          });
           resolve();
         }
+
         this.props.handleFetchNotes();
       }
     });
@@ -124,22 +150,24 @@ class DeleteDialog extends React.Component<
   deleteBook = (key: string) => {
     return new Promise<void>((resolve, reject) => {
       this.props.books &&
-        window.localforage
-          .setItem("books", DeleteUtil.deleteBook(this.props.books, key))
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/set`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            key: "books",
+            value: DeleteUtil.deleteBook(this.props.books, key),
+          }),
+        })
           .then(async () => {
             await BookUtil.deleteBook(key);
             await BookUtil.deleteBook("cache-" + key);
-            //从喜爱的图书中删除
             AddFavorite.clear(key);
-            //从回收的图书中删除
             AddTrash.clear(key);
-            //从书架删除
             ShelfUtil.deletefromAllShelf(key);
-            //从阅读记录删除
             RecordRecent.clear(key);
-            //删除阅读历史
             RecordLocation.clear(key);
-            //删除书签，笔记，书摘，高亮
             await this.handleDeleteOther(key);
             resolve();
           })

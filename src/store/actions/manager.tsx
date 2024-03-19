@@ -3,7 +3,7 @@ import SortUtil from "../../utils/readUtils/sortUtil";
 import BookModel from "../../model/Book";
 import { Dispatch } from "redux";
 import AddTrash from "../../utils/readUtils/addTrash";
-declare var window: any;
+// declare var window: any;
 export function handleBooks(books: BookModel[]) {
   return { type: "HANDLE_BOOKS", payload: books };
 }
@@ -78,14 +78,22 @@ export function handleNoteSortCode(noteSortCode: {
 
 export function handleFetchBooks() {
   return (dispatch: Dispatch) => {
-    window.localforage.getItem("books", (err, value) => {
-      let bookArr: any = value;
-      let keyArr = AddTrash.getAllTrash();
-      dispatch(handleDeletedBooks(handleKeyFilter(bookArr, keyArr)));
-      dispatch(handleBooks(handleKeyRemove(bookArr, keyArr)));
-    });
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/get?key=books`)
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("Books fetched from server:", data);
+        let bookArr = data.data;
+        let keyArr = AddTrash.getAllTrash();
+
+        dispatch(handleDeletedBooks(handleKeyFilter(bookArr, keyArr)));
+        dispatch(handleBooks(handleKeyRemove(bookArr, keyArr)));
+      })
+      .catch((error) => {
+        console.error("Error fetching books:", error);
+      });
   };
 }
+
 export function handleFetchBookSortCode() {
   return (dispatch: Dispatch) => {
     let bookSortCode = SortUtil.getBookSortCode();

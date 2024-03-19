@@ -196,16 +196,23 @@ class BookList extends React.Component<BookListProps, BookListState> {
     }
     if (isElectron) {
       //兼容之前的版本
-      window.localforage.getItem(this.props.books[0].key).then((result) => {
-        if (result) {
-          backup(
-            this.props.books,
-            this.props.notes,
-            this.props.bookmarks,
-            false
-          );
-        }
-      });
+      fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/get?key=${this.props.books[0].key}`
+      )
+        .then((response) => response.json())
+        .then((data) => {
+          if (data && data.data) {
+            backup(
+              this.props.books,
+              this.props.notes,
+              this.props.bookmarks,
+              false
+            );
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching item:", error);
+        });
     }
 
     StorageUtil.setReaderConfig(

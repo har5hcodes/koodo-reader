@@ -43,7 +43,28 @@ class BookUtil {
         };
       });
     } else {
-      return window.localforage.setItem(key, buffer);
+      const content = Buffer.from(buffer).toString("base64");
+      return fetch(`${process.env.REACT_APP_BACKEND_URL}/set`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          key: key,
+          value: content,
+        }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.status !== "success") {
+            throw new Error(data.message);
+          }
+          return data;
+        })
+        .catch((error) => {
+          console.error("Error storing book content:", error);
+          throw error;
+        });
     }
   }
   static deleteBook(key: string) {
@@ -66,7 +87,24 @@ class BookUtil {
         }
       });
     } else {
-      return window.localforage.removeItem(key);
+      return fetch(`${process.env.REACT_APP_BACKEND_URL}/remove`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ fileId: key }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.status !== "success") {
+            throw new Error(data.message);
+          }
+          return data;
+        })
+        .catch((error) => {
+          console.error("Error removing book content:", error);
+          throw error;
+        });
     }
   }
   static isBookExist(key: string, bookPath: string = "") {
@@ -95,13 +133,25 @@ class BookUtil {
           resolve(false);
         }
       } else {
-        window.localforage.getItem(key).then((result) => {
-          if (result) {
-            resolve(true);
-          } else {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/get?key=${key}`)
+          .then((response) => {
+            if (response.ok) {
+              return response.json();
+            } else {
+              throw new Error("Content not found");
+            }
+          })
+          .then((data) => {
+            if (data && data.data) {
+              resolve(true);
+            } else {
+              resolve(false);
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching content:", error);
             resolve(false);
-          }
-        });
+          });
       }
     });
   }
@@ -144,7 +194,19 @@ class BookUtil {
         }
       });
     } else {
-      return window.localforage.getItem(key);
+      return fetch(`${process.env.REACT_APP_BACKEND_URL}/get?key=${key}`)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.status === "success") {
+            return data.content;
+          } else {
+            throw new Error(data.message);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching book content:", error);
+          throw error;
+        });
     }
   }
   static FetchAllBooks(Books: BookModel[]) {
@@ -220,7 +282,7 @@ class BookUtil {
         ? pdfLocation + url
         : `${pdfLocation}?file=${book.key}`;
     } else {
-      return `./lib/pdf/web/viewer.html?file=${book.gdriveFileId}`;
+      return `./lib/pdf/web/viewer.html?file=${book.key}`;
     }
   }
   static reloadBooks() {

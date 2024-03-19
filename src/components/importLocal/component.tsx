@@ -220,9 +220,17 @@ class ImportLocal extends React.Component<ImportLocalProps, ImportLocalState> {
       bookArr.push(book);
       this.props.handleReadingBook(book);
       RecordRecent.setRecent(book.key);
-      window.localforage
-        .setItem("books", bookArr)
-        .then(() => {
+
+      const payload = new Blob(
+        [JSON.stringify({ key: "books", value: bookArr })],
+        { type: "application/json" }
+      );
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/set`, {
+        method: "POST",
+        body: payload,
+      })
+        .then((response) => response.json())
+        .then((data) => {
           this.props.handleFetchBooks();
           if (this.props.mode === "shelf") {
             let shelfTitles = Object.keys(ShelfUtil.getShelf());
@@ -243,7 +251,7 @@ class ImportLocal extends React.Component<ImportLocalProps, ImportLocalState> {
           }, 100);
           return resolve(fileId);
         })
-        .catch(() => {
+        .catch((error) => {
           toast.error(this.props.t("Import failed"));
           return resolve(fileId);
         });
@@ -326,6 +334,26 @@ class ImportLocal extends React.Component<ImportLocalProps, ImportLocalState> {
                 file_content as ArrayBuffer
               );
               result.gdriveFileId = gdriveFileId;
+
+              const bookArr = [...(this.props.books || []), result];
+              const payload = new Blob(
+                [JSON.stringify({ key: "books", value: bookArr })],
+                { type: "application/json" }
+              );
+              fetch(`${process.env.REACT_APP_BACKEND_URL}/set`, {
+                method: "POST",
+                body: payload,
+              })
+                .then((response) => response.json())
+                .then((data) => {
+                  this.props.handleFetchBooks();
+                  toast.success(this.props.t("Book addition successful"));
+                  resolve();
+                })
+                .catch((error) => {
+                  toast.error(this.props.t("Book addition failed"));
+                  resolve();
+                });
             }
             return resolve();
           };

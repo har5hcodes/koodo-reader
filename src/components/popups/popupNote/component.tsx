@@ -85,13 +85,24 @@ class PopupNote extends React.Component<PopupNoteProps, PopupNoteState> {
           item.cfi = cfi;
         }
       });
-      window.localforage.setItem("notes", this.props.notes).then(() => {
-        this.props.handleOpenMenu(false);
-        toast.success(this.props.t("Addition successful"));
-        this.props.handleFetchNotes();
-        this.props.handleMenuMode("");
-        this.props.handleNoteKey("");
-      });
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/set`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ key: "notes", value: this.props.notes }),
+      })
+        .then(() => {
+          this.props.handleOpenMenu(false);
+          toast.success(this.props.t("Addition successful"));
+          this.props.handleFetchNotes();
+          this.props.handleMenuMode("");
+          this.props.handleNoteKey("");
+        })
+        .catch((error) => {
+          console.error("Error saving notes:", error);
+          toast.error(this.props.t("Addition failed"));
+        });
     } else {
       //创建笔记
       let bookKey = this.props.currentBook.key;
@@ -136,17 +147,28 @@ class PopupNote extends React.Component<PopupNoteProps, PopupNoteState> {
 
       let noteArr = this.props.notes;
       noteArr.push(note);
-      window.localforage.setItem("notes", noteArr).then(() => {
-        this.props.handleOpenMenu(false);
-        toast.success(this.props.t("Addition successful"));
-        this.props.handleFetchNotes();
-        this.props.handleMenuMode("");
-        createOneNote(
-          note,
-          this.props.currentBook.format,
-          this.handleNoteClick
-        );
-      });
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/set`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ key: "notes", value: noteArr }),
+      })
+        .then(() => {
+          this.props.handleOpenMenu(false);
+          toast.success(this.props.t("Addition successful"));
+          this.props.handleFetchNotes();
+          this.props.handleMenuMode("");
+          createOneNote(
+            note,
+            this.props.currentBook.format,
+            this.handleNoteClick
+          );
+        })
+        .catch((error) => {
+          console.error("Error saving notes:", error);
+          toast.error(this.props.t("Addition failed"));
+        });
     }
   }
   handleClose = () => {
@@ -161,22 +183,33 @@ class PopupNote extends React.Component<PopupNoteProps, PopupNoteState> {
       });
       if (noteIndex > -1) {
         this.props.notes.splice(noteIndex, 1);
-        window.localforage.setItem("notes", this.props.notes).then(() => {
-          if (this.props.currentBook.format === "PDF") {
-            removePDFHighlight(
-              JSON.parse(note.range),
-              classes[note.color],
-              note.key
-            );
-          }
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/set`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ key: "notes", value: this.props.notes }),
+        })
+          .then(() => {
+            if (this.props.currentBook.format === "PDF") {
+              removePDFHighlight(
+                JSON.parse(note.range),
+                classes[note.color],
+                note.key
+              );
+            }
 
-          toast.success(this.props.t("Deletion successful"));
-          this.props.handleMenuMode("");
-          this.props.handleFetchNotes();
-          this.props.handleNoteKey("");
-          removeOneNote(note.key, this.props.currentBook.format);
-          this.props.handleOpenMenu(false);
-        });
+            toast.success(this.props.t("Deletion successful"));
+            this.props.handleMenuMode("");
+            this.props.handleFetchNotes();
+            this.props.handleNoteKey("");
+            removeOneNote(note.key, this.props.currentBook.format);
+            this.props.handleOpenMenu(false);
+          })
+          .catch((error) => {
+            console.error("Error saving notes:", error);
+            toast.error(this.props.t("Deletion failed"));
+          });
       }
     } else {
       this.props.handleOpenMenu(false);

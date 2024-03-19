@@ -43,24 +43,29 @@ class Viewer extends React.Component<ViewerProps, ViewerState> {
     let firstIndexOfQuestion = url.indexOf("?");
     let lastIndexOfSlash = url.lastIndexOf("/", firstIndexOfQuestion);
     let key = url.substring(lastIndexOfSlash + 1, firstIndexOfQuestion);
-    window.localforage.getItem("books").then((result: any) => {
-      let book;
-      if (this.props.currentBook.key) {
-        book = this.props.currentBook;
-      } else {
-        book =
-          result[window._.findIndex(result, { key })] ||
-          JSON.parse(localStorage.getItem("tempBook") || "{}");
-      }
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/get?key=books`)
+      .then((response) => response.json())
+      .then((data) => {
+        let book;
+        const result = data.data;
+        if (this.props.currentBook.key) {
+          book = this.props.currentBook;
+        } else {
+          book =
+            result[window._.findIndex(result, { key })] ||
+            JSON.parse(localStorage.getItem("tempBook") || "{}");
+        }
 
-      document.title = book.name + " - Koodo Reader";
-      this.props.handleReadingState(true);
-      RecentBooks.setRecent(key);
-      this.props.handleReadingBook(book);
-      this.setState({ title: book.name + " - Koodo Reader" });
-      this.setState({ href: BookUtil.getPDFUrl(book) });
-      this.fetchAndApplyHiddenPages(book.key);
-    });
+        document.title = book.name + " - Koodo Reader";
+        this.props.handleReadingState(true);
+        RecentBooks.setRecent(key);
+        this.props.handleReadingBook(book);
+        this.setState({ title: book.name + " - Koodo Reader" });
+        this.setState({ href: BookUtil.getPDFUrl(book) });
+        this.fetchAndApplyHiddenPages(book.key);
+      })
+      .catch((error) => console.error("Error fetching books:", error));
+
     document
       .querySelector(".ebook-viewer")
       ?.setAttribute("style", "height:100%; overflow: hidden;");
@@ -244,14 +249,19 @@ class Viewer extends React.Component<ViewerProps, ViewerState> {
     const { hiddenPages } = this.state;
     const bookKey = this.props.currentBook.key;
 
-    window.localforage
-      .getItem("hiddenPages")
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/get?key=hiddenPages`)
+      .then((response) => response.json())
       .then((data) => {
-        const hiddenPagesMap = data || {};
+        const hiddenPagesMap = data.data || {};
         hiddenPagesMap[bookKey] = hiddenPages;
 
-        window.localforage
-          .setItem("hiddenPages", hiddenPagesMap)
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/set`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ key: "hiddenPages", value: hiddenPagesMap }),
+        })
           .then(() => {
             console.log("Hidden pages info saved.");
           })
@@ -263,12 +273,14 @@ class Viewer extends React.Component<ViewerProps, ViewerState> {
         console.error("Error fetching hidden pages:", error);
       });
   };
+
   fetchAndApplyHiddenPages = (bookKey) => {
-    window.localforage
-      .getItem("hiddenPages")
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/get?key=hiddenPages`)
+      .then((response) => response.json())
       .then((data) => {
-        if (data && data[bookKey]) {
-          this.setState({ hiddenPages: data[bookKey] }, () => {
+        const hiddenPagesData = data.data || {};
+        if (hiddenPagesData && hiddenPagesData[bookKey]) {
+          this.setState({ hiddenPages: hiddenPagesData[bookKey] }, () => {
             const totalPages = this.getTotalPageNumber();
             if (this.state.hiddenPages.length === totalPages) {
               this.displayAllPagesHiddenMessage();
@@ -296,7 +308,6 @@ class Viewer extends React.Component<ViewerProps, ViewerState> {
               { once: true }
             );
 
-            // Check if all the pages are hidden
             setTimeout(() => {
               const totalPages = this.getTotalPageNumber();
               if (this.state.hiddenPages.length === totalPages) {
@@ -310,6 +321,7 @@ class Viewer extends React.Component<ViewerProps, ViewerState> {
         console.error("Error fetching hidden pages:", error);
       });
   };
+
   getButtonStyle(isHovered) {
     return {
       color: "#fcfcfc",

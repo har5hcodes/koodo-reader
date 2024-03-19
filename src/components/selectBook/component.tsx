@@ -14,7 +14,7 @@ import {
 } from "../../utils/syncUtils/exportUtil";
 import BookUtil from "../../utils/fileUtils/bookUtil";
 import ShelfUtil from "../../utils/readUtils/shelfUtil";
-declare var window: any;
+// declare var window: any;
 class SelectBook extends React.Component<BookListProps, BookListState> {
   constructor(props: BookListProps) {
     super(props);
@@ -211,20 +211,28 @@ class SelectBook extends React.Component<BookListProps, BookListState> {
                       (item: BookModel) =>
                         this.props.selectedBooks.indexOf(item.key) > -1
                     );
-                    let dictHistory =
-                      (await window.localforage.getItem("words")) || [];
-                    dictHistory = dictHistory.filter(
-                      (item) =>
-                        selectedBooks.filter(
-                          (subitem) => subitem.key === item.bookKey
-                        ).length > 0
-                    );
-                    if (dictHistory.length > 0) {
-                      exportDictionaryHistory(dictHistory, selectedBooks);
-                      toast.success(this.props.t("Export successful"));
-                    } else {
-                      toast(this.props.t("Nothing to export"));
-                    }
+
+                    fetch(`${process.env.REACT_APP_BACKEND_URL}/get?key=words`)
+                      .then((response) => response.json())
+                      .then((data) => {
+                        let dictHistory = data.data || [];
+                        dictHistory = dictHistory.filter((item) =>
+                          selectedBooks.some(
+                            (subitem) => subitem.key === item.bookKey
+                          )
+                        );
+
+                        if (dictHistory.length > 0) {
+                          exportDictionaryHistory(dictHistory, selectedBooks);
+                          toast.success(this.props.t("Export successful"));
+                        } else {
+                          toast(this.props.t("Nothing to export"));
+                        }
+                      })
+                      .catch((error) => {
+                        console.error("Error fetching words:", error);
+                        toast.error(this.props.t("Error fetching words"));
+                      });
                   }}
                 >
                   <Trans>Export dictionary history</Trans>

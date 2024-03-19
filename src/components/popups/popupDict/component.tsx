@@ -55,9 +55,27 @@ class PopupDict extends React.Component<PopupDictProps, PopupDictState> {
     let bookLocation = RecordLocation.getHtmlLocation(bookKey);
     let chapter = bookLocation.chapterTitle;
     let word = new DictHistory(bookKey, text, chapter);
-    let dictHistoryArr = (await window.localforage.getItem("words")) || [];
-    dictHistoryArr.push(word);
-    window.localforage.setItem("words", dictHistoryArr);
+    let dictHistoryArr: DictHistory[] = [];
+
+    const response = await fetch(
+      `${process.env.REACT_APP_BACKEND_URL}/get?key=words`
+    );
+    const data = await response.json();
+    dictHistoryArr = data.data || [];
+    if (word) {
+      dictHistoryArr.push(word);
+    }
+
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/set`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ key: "words", value: dictHistoryArr }),
+    })
+      .then((response) => response.json())
+      .then((data) => console.log("Words saved successfully:", data))
+      .catch((error) => console.error("Error saving words:", error));
   };
   handleDictText = (res: any) => {
     return (

@@ -3163,10 +3163,14 @@
             localStorage.setItem("pdfPath", "");
             PDFViewerApplication.open(new Uint8Array(data).buffer);
           } else {
-            (localforage || window.localforage)
-              .getItem(file)
-              .then(function (result) {
-                PDFViewerApplication.open(result);
+            fetch(`${window.backendUrl}/get?key=${file}`)
+              .then((response) => response.json())
+              .then((data) => {
+                if (data && data.data) {
+                  PDFViewerApplication.open(data.data);
+                } else {
+                  throw new Error("File not found");
+                }
               })
               .catch((err) => {
                 console.log(err);

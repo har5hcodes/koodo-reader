@@ -341,12 +341,16 @@ class ActionDialog extends React.Component<
               className="action-dialog-edit"
               style={{ paddingLeft: "0px" }}
               onClick={async () => {
-                let dictHistory =
-                  (await window.localforage.getItem("words")) || [];
+                const response = await fetch(
+                  `${process.env.REACT_APP_BACKEND_URL}/get?key=words`
+                );
+                const data = await response.json();
+                let dictHistory = data.data || [];
+
                 if (
-                  dictHistory.filter(
+                  dictHistory.some(
                     (item) => item.bookKey === this.props.currentBook.key
-                  ).length > 0
+                  )
                 ) {
                   exportDictionaryHistory(dictHistory, [
                     ...this.props.books,
@@ -362,6 +366,7 @@ class ActionDialog extends React.Component<
                 <Trans>Export dictionary history</Trans>
               </p>
             </div>
+
             <div
               className="action-dialog-edit"
               style={{ paddingLeft: "0px" }}
