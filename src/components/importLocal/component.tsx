@@ -347,7 +347,6 @@ class ImportLocal extends React.Component<ImportLocalProps, ImportLocalState> {
                 .then((response) => response.json())
                 .then((data) => {
                   this.props.handleFetchBooks();
-                  toast.success(this.props.t("Book addition successful"));
                   resolve();
                 })
                 .catch((error) => {

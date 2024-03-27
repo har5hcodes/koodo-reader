@@ -38,22 +38,27 @@ export function handleFetchNotes() {
     fetch(`${process.env.REACT_APP_BACKEND_URL}/get?key=notes`)
       .then((response) => response.json())
       .then((data) => {
-        let noteArr = data.data || [];
-        let keyArr = AddTrash.getAllTrash();
-        dispatch(handleNotes(handleKeyRemove(noteArr, keyArr)));
-        dispatch(
-          handleDigests(
-            handleKeyRemove(
-              noteArr.filter((item: NoteModel) => item.notes === ""),
-              keyArr
+        if (data.status === "success" && data.data) {
+          let noteArr = data.data;
+          let keyArr = AddTrash.getAllTrash();
+          dispatch(handleNotes(handleKeyRemove(noteArr, keyArr)));
+          dispatch(
+            handleDigests(
+              handleKeyRemove(
+                noteArr.filter((item: NoteModel) => item.notes === ""),
+                keyArr
+              )
             )
-          )
-        );
+          );
+        } else {
+          return;
+        }
       })
-      .catch((error) => console.error("Error fetching notes:", error));
+      .catch((error) => {
+        console.error("Error fetching notes:", error);
+      });
   };
 }
-
 export function handleFetchBookmarks() {
   return (
     dispatch: (arg0: { type: string; payload: BookmarkModel[] }) => void
@@ -61,9 +66,13 @@ export function handleFetchBookmarks() {
     fetch(`${process.env.REACT_APP_BACKEND_URL}/get?key=bookmarks`)
       .then((response) => response.json())
       .then((data) => {
-        let bookmarkArr = data.data || [];
-        let keyArr = AddTrash.getAllTrash();
-        dispatch(handleBookmarks(handleKeyRemove(bookmarkArr, keyArr)));
+        if (data.status === "success" && data.data != null) {
+          let bookmarkArr = data.data;
+          let keyArr = AddTrash.getAllTrash();
+          dispatch(handleBookmarks(handleKeyRemove(bookmarkArr, keyArr)));
+        } else {
+          return;
+        }
       })
       .catch((error) => console.error("Error fetching bookmarks:", error));
   };

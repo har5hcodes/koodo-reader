@@ -80,7 +80,7 @@ class DeleteDialog extends React.Component<
       }
     });
   };
-  handleComfirm = async () => {
+  handleConfirm = async () => {
     //从列表删除和从图书库删除判断
     if (this.props.mode === "shelf" && !this.state.isDeleteShelfBook) {
       this.deleteBookFromShelf();
@@ -246,7 +246,7 @@ class DeleteDialog extends React.Component<
         <div
           className="delete-dialog-comfirm"
           onClick={() => {
-            this.handleComfirm();
+            this.handleConfirm();
           }}
         >
           <Trans>Delete</Trans>

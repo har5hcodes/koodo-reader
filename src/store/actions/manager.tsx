@@ -81,7 +81,6 @@ export function handleFetchBooks() {
     fetch(`${process.env.REACT_APP_BACKEND_URL}/get?key=books`)
       .then((response) => response.json())
       .then((data) => {
-        console.log("Books fetched from server:", data);
         let bookArr = data.data;
         let keyArr = AddTrash.getAllTrash();
 

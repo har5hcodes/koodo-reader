@@ -84,7 +84,7 @@ class Redirect extends React.Component<RedirectProps, RedirectState> {
     let expiresIn = hashParams.get("expires_in");
 
     if (accessToken === undefined) {
-      console.error("Access token not found");
+      return;
     } else {
       StorageUtil.setReaderConfig(`googledrive_token`, accessToken);
 

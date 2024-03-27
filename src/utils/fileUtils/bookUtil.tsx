@@ -77,14 +77,14 @@ class BookUtil {
             .require("electron")
             .ipcRenderer.sendSync("storage-location", "ping");
       return new Promise<void>((resolve, reject) => {
-        try {
-          fs_extra.remove(path.join(dataPath, `book`, key), (err) => {
-            if (err) throw err;
+        fs_extra.remove(path.join(dataPath, `book`, key), (err) => {
+          if (err) {
+            console.error("Error removing book content:", err);
+            reject(err);
+          } else {
             resolve();
-          });
-        } catch (e) {
-          reject();
-        }
+          }
+        });
       });
     } else {
       return fetch(`${process.env.REACT_APP_BACKEND_URL}/remove`, {
@@ -92,7 +92,7 @@ class BookUtil {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ fileId: key }),
+        body: JSON.stringify({ key: key }),
       })
         .then((response) => response.json())
         .then((data) => {
@@ -107,6 +107,7 @@ class BookUtil {
         });
     }
   }
+
   static isBookExist(key: string, bookPath: string = "") {
     return new Promise<boolean>((resolve, reject) => {
       if (isElectron) {
